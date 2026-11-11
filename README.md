@@ -10,12 +10,7 @@
 
 ---
 
-## 📚 项目目录
-
-> 点击标题展开对应内容。
-
-<details>
-<summary><strong>技术栈</strong></summary>
+## 技术栈
 
 | 用途 | 技术 |
 | --- | --- |
@@ -24,12 +19,7 @@
 | 缓存 | Spring Data Redis |
 | 构建 | Maven，编译目标为 Java 8 |
 
-</details>
-
-<details>
-<summary><strong>源码入口</strong></summary>
+## 源码入口
 
 - [pom.xml](pom.xml) 定义项目依赖和构建配置。
 - [src](src) 存放项目源码和资源。
-
-</details>
