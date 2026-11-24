@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static com.hmdp.utils.RedisConstants.CACHE_NULL_TTL;
 import javax.annotation.PreDestroy;
@@ -42,23 +43,27 @@ public class CacheClient {
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(redisData));
     }
 
-    public <R,ID> R queryWithPassThrough(
-            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit){
+    public <R, ID> R queryWithPassThrough(
+            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback, Long time, TimeUnit unit) {
+        return queryWithPassThrough(keyPrefix, id, type, dbFallback, time, unit, value -> true);
+    }
+
+    public <R, ID> R queryWithPassThrough(
+            String keyPrefix, ID id, Class<R> type, Function<ID, R> dbFallback,
+            Long time, TimeUnit unit, Predicate<R> isValidCachedValue) {
         String key = keyPrefix + id;
-        // 1.从redis查询商铺缓存
         String json = stringRedisTemplate.opsForValue().get(key);
-        // 2.判断是否存在
         if (StrUtil.isNotBlank(json)) {
-            // 未命中时直接返回；逻辑过期方案需预热热点数据。
-            return JSONUtil.toBean(json, type);
-        }
-        // 判断命中的是否是空值
-        if (json != null) {
-            // 返回一个错误信息
+            R cached = JSONUtil.toBean(json, type);
+            if (cached != null && isValidCachedValue.test(cached)) {
+                return cached;
+            }
+            // 旧格式反序列化后可能缺少业务字段，回源后直接覆盖该缓存。
+        } else if (json != null) {
+            // 空字符串表示已确认数据库中没有这条记录。
             return null;
         }
 
-        // 4.不存在，根据id查询数据库
         R r = dbFallback.apply(id);
         // 5.不存在，返回错误
         if (r == null) {

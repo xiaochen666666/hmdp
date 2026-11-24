@@ -37,9 +37,10 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     @Override
     public Result queryById(Long id) {
-        // 解决缓存穿透
+        // 普通店铺 JSON 必须包含正确的 ID，旧逻辑过期包装会触发回源重建。
         Shop shop = cacheClient
-                .queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+                .queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById,
+                        CACHE_SHOP_TTL, TimeUnit.MINUTES, cached -> id.equals(cached.getId()));
 
         // 互斥锁解决缓存击穿
         // Shop shop = cacheClient
